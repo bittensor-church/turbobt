@@ -2,6 +2,7 @@ import asyncio
 import contextlib
 import json
 import logging
+import os
 import traceback
 import types
 import typing
@@ -23,7 +24,7 @@ class WebSocketTransport(BaseTransport):
     def __init__(
         self,
         uri: str,
-        retries: int = 0,
+        retries: int = int(os.environ.get('TURBOBT_RETRIES', 0)),
         timeout: Timeout = Timeout(
             connect=15.0,
             read=60.0,
