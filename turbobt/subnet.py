@@ -60,7 +60,7 @@ class SubnetCommitments:
             return None
 
         return next(
-            bytes.fromhex(value[2:])
+            bytes.fromhex(value[2:] or "")
             for field in commitments["info"]["fields"]
             for value in field.values()
         )
@@ -76,7 +76,7 @@ class SubnetCommitments:
 
         return {
             hotkey: next(
-                bytes.fromhex(value[2:])
+                bytes.fromhex(value[2:] or "")
                 for field in value["info"]["fields"]
                 for value in field.values()
             )
