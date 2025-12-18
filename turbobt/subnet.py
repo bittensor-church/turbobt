@@ -180,7 +180,7 @@ class SubnetNeurons:
 
     async def get_certificates(self, block_hash: str | None = None) -> dict[HotKey, NeuronCertificate]:
         def strip_0x(certificate: NeuronCertificate) -> NeuronCertificate:
-            certificate["public_key"] = certificate["public_key"].strip("0x")
+            certificate["public_key"] = certificate["public_key"].removeprefix("0x")
             return certificate
 
         certificates = await self.subnet.client.subtensor.subtensor_module.NeuronCertificates.fetch(

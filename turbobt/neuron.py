@@ -183,7 +183,7 @@ class NeuronReference:
             block_hash=block_hash,
         )
         if certificate is not None:
-            certificate["public_key"] = certificate["public_key"].strip("0x")
+            certificate["public_key"] = certificate["public_key"].removeprefix("0x")
 
         return certificate
 
