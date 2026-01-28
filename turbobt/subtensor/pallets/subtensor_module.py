@@ -56,7 +56,7 @@ class ZippedWeights(typing.NamedTuple):
 # identified by version number 4, and if we start using numbers directly it's all gonna
 # explode
 class CommitRevealVersion(IntEnum):
-    CRV3 = 4 # v3 is identified with 4 in SubtensorModule
+    CRV3 = 4  # v3 is identified with 4 in SubtensorModule
 
 
 class SubtensorModule(Pallet):
@@ -160,7 +160,7 @@ class SubtensorModule(Pallet):
                 "netuid": netuid,
                 "commit": f"0x{commit.hex()}",
                 "reveal_round": reveal_round,
-                "mecid": 0, # backward-compatibility
+                "mecid": 0,  # backward-compatibility
                 "commit_reveal_version": CommitRevealVersion.CRV3,
             },
             key=wallet.hotkey,
@@ -204,7 +204,7 @@ class SubtensorModule(Pallet):
             {
                 "netuid": netuid,
                 "commit": f"0x{commit.hex()}",
-                "mecid": 0, # backward compatibility
+                "mecid": 0,  # backward compatibility
                 "reveal_round": reveal_round,
                 "commit_reveal_version": commit_reveal_version,
             },
@@ -469,14 +469,13 @@ class SubtensorModule(Pallet):
             {
                 "netuid": netuid,
                 "dests": dests,
-                "mecid": 0, # backward compatibility
+                "mecid": 0,  # backward compatibility
                 "weights": weights,
                 "version_key": version_key,
             },
             key=wallet.hotkey,
             era=era,
         )
-
 
     async def set_mechanism_weights(
         self,

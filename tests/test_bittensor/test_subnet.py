@@ -511,7 +511,9 @@ async def test_get_certificates(mocked_subtensor, bittensor):
         (("netuid", "5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH"), mock_cert2),
     ]
 
-    mocked_subtensor.subtensor_module.NeuronCertificates.fetch.return_value = mock_certificates
+    mocked_subtensor.subtensor_module.NeuronCertificates.fetch.return_value = (
+        mock_certificates
+    )
 
     subnet = await bittensor.subnet(1).get()
     certificates = await subnet.neurons.get_certificates()
@@ -543,7 +545,9 @@ async def test_get_certificates_with_block_hash(mocked_subtensor, bittensor):
         (("netuid", "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"), mock_cert),
     ]
 
-    mocked_subtensor.subtensor_module.NeuronCertificates.fetch.return_value = mock_certificates
+    mocked_subtensor.subtensor_module.NeuronCertificates.fetch.return_value = (
+        mock_certificates
+    )
 
     subnet = await bittensor.subnet(1).get()
     block_hash = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
@@ -576,18 +580,18 @@ async def test_get_certificates_empty_neurons(mocked_subtensor, bittensor):
 
 
 @pytest.mark.asyncio
-async def test_generate_certificate_keypair_success(mocker, mocked_subtensor, bittensor, alice_wallet, neuron):
+async def test_generate_certificate_keypair_success(
+    mocker, mocked_subtensor, bittensor, alice_wallet, neuron
+):
     subnet = await bittensor.subnet(1).get()
-    
+
     # Mock the subnet.get_neuron method
-    mock_get_neuron = mocker.patch.object(
-        subnet, 'get_neuron', return_value=neuron
-    )
+    mock_get_neuron = mocker.patch.object(subnet, "get_neuron", return_value=neuron)
     # Mock the serve method to avoid actual serving
     mock_serve = mocker.patch.object(
-        subnet.neurons, 'serve', new_callable=mocker.AsyncMock
+        subnet.neurons, "serve", new_callable=mocker.AsyncMock
     )
-    
+
     keypair = await subnet.neurons.generate_certificate_keypair()
 
     # Verify that get_neuron was called with the alice_wallet's ss58_address
@@ -610,21 +614,20 @@ async def test_generate_certificate_keypair_success(mocker, mocked_subtensor, bi
 
 
 @pytest.mark.asyncio
-async def test_generate_certificate_keypair_with_custom_algorithm(mocker, mocked_subtensor, bittensor, alice_wallet, neuron):
+async def test_generate_certificate_keypair_with_custom_algorithm(
+    mocker, mocked_subtensor, bittensor, alice_wallet, neuron
+):
     subnet = await bittensor.subnet(1).get()
-    
+
     # Mock the subnet.get_neuron method
-    mocker.patch.object(
-        subnet, 'get_neuron', return_value=neuron
-    )
+    mocker.patch.object(subnet, "get_neuron", return_value=neuron)
     # Mock the serve method to avoid actual serving
     mock_serve = mocker.patch.object(
-        subnet.neurons, 'serve', new_callable=mocker.AsyncMock
+        subnet.neurons, "serve", new_callable=mocker.AsyncMock
     )
-    
+
     keypair = await subnet.neurons.generate_certificate_keypair(
-        algorithm=CertificateAlgorithm.ED25519,
-        timeout=30.0
+        algorithm=CertificateAlgorithm.ED25519, timeout=30.0
     )
 
     # Verify that serve was called with the timeout
@@ -637,14 +640,14 @@ async def test_generate_certificate_keypair_with_custom_algorithm(mocker, mocked
 
 
 @pytest.mark.asyncio
-async def test_generate_certificate_keypair_neuron_not_found(mocker, mocked_subtensor, bittensor, alice_wallet):
+async def test_generate_certificate_keypair_neuron_not_found(
+    mocker, mocked_subtensor, bittensor, alice_wallet
+):
     subnet = await bittensor.subnet(1).get()
-    
+
     # Mock the subnet.get_neuron method to return None
-    mock_get_neuron = mocker.patch.object(
-        subnet, 'get_neuron', return_value=None
-    )
-    
+    mock_get_neuron = mocker.patch.object(subnet, "get_neuron", return_value=None)
+
     keypair = await subnet.neurons.generate_certificate_keypair()
 
     # Verify that get_neuron was called with alice_wallet's ss58_address

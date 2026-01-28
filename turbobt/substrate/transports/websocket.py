@@ -19,6 +19,7 @@ __all__ = [
 
 logger = logging.getLogger(__name__)
 
+
 class WebSocketTransport(BaseTransport):
     def __init__(
         self,

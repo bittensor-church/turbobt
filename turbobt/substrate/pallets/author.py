@@ -90,17 +90,21 @@ class Author(Pallet):
                     current=header["number"],
                 )
 
-            era_obj.encode({
-                key: value
-                for key, value in dataclasses.asdict(era).items()
-                if value is not None
-            })
+            era_obj.encode(
+                {
+                    key: value
+                    for key, value in dataclasses.asdict(era).items()
+                    if value is not None
+                }
+            )
 
         runtime_version, nonce, genesis_hash, block_hash = await asyncio.gather(
             self.substrate.state.getRuntimeVersion(),
             self.substrate.system.accountNextIndex(key.ss58_address),
             self.substrate.chain.getBlockHash(0),
-            self.substrate.chain.getBlockHash(era_obj.birth(era.current if era else None)),
+            self.substrate.chain.getBlockHash(
+                era_obj.birth(era.current if era else None)
+            ),
         )
 
         extrinsic = self._sign(

@@ -17,8 +17,7 @@ async def test_submit_and_watch_extrinsic(substrate, mocked_transport, alice_wal
             "stateRoot": "0xfb9e07dd769d95a30ab04e1e801b1400df1261487cddab93dc64628ad95cec56",
             "extrinsicsRoot": "0xe5b4ae1cda6591fa8a8026bef64c5d712f7dc6c0dc700f74d1670139e55c220d",
             "digest": {
-                "logs": [
-                ],
+                "logs": [],
             },
         },
     }
@@ -26,7 +25,7 @@ async def test_submit_and_watch_extrinsic(substrate, mocked_transport, alice_wal
         "result": "0xf0aa135ddac82c7b5ea0de2b021945381bc6a449fdd44386d9956fa0a5ee1e05",
     }
     mocked_transport.responses["author_submitAndWatchExtrinsic"] = {
-        "result": bytearray(b'S6KpbWmhS2jSAsc8'),
+        "result": bytearray(b"S6KpbWmhS2jSAsc8"),
     }
 
     result = await substrate.author.submitAndWatchExtrinsic(
@@ -84,6 +83,8 @@ async def test_unwatch_extrinsic(substrate, mocked_transport):
         "result": True,
     }
 
-    result = await substrate.author.unwatchExtrinsic("0x53364b7062576d6853326a5341736338")
+    result = await substrate.author.unwatchExtrinsic(
+        "0x53364b7062576d6853326a5341736338"
+    )
 
     assert result is True
