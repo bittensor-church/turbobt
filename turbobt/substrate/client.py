@@ -146,10 +146,10 @@ class Substrate:
             self._registry = runtime_config
             self._metadata = metadata
             self._apis = {
-                api["name"]: api | {
+                api["name"]: api
+                | {
                     "methods": {
-                        api_method["name"]: api_method
-                        for api_method in api["methods"]
+                        api_method["name"]: api_method for api_method in api["methods"]
                     }
                 }
                 for api in metadata15["apis"]

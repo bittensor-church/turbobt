@@ -151,12 +151,10 @@ class SubnetInfoRuntimeApi(RuntimeApi):
             return
 
         subnet_state["hotkeys"] = [
-            scalecodec.utils.ss58.ss58_encode(key)
-            for key in subnet_state["hotkeys"]
+            scalecodec.utils.ss58.ss58_encode(key) for key in subnet_state["hotkeys"]
         ]
         subnet_state["coldkeys"] = [
-            scalecodec.utils.ss58.ss58_encode(key)
-            for key in subnet_state["coldkeys"]
+            scalecodec.utils.ss58.ss58_encode(key) for key in subnet_state["coldkeys"]
         ]
 
         return subnet_state

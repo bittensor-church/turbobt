@@ -125,25 +125,30 @@ async def test_remove_stake(mocked_subtensor, bittensor, alice_wallet):
         wallet=alice_wallet,
     )
 
+
 @pytest.mark.asyncio
 async def test_get_certificate_success(mocked_subtensor, bittensor):
     # Mock certificate data
     mock_certificate = {
         "algorithm": 1,
         "public_key": "0x1234567890abcdef",
-        "signature": "0xfedcba0987654321"
+        "signature": "0xfedcba0987654321",
     }
-    mocked_subtensor.subtensor_module.NeuronCertificates.get.return_value = mock_certificate
+    mocked_subtensor.subtensor_module.NeuronCertificates.get.return_value = (
+        mock_certificate
+    )
 
     subnet_ref = bittensor.subnet(1)
-    neuron_ref = subnet_ref.neuron(hotkey="5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM")
+    neuron_ref = subnet_ref.neuron(
+        hotkey="5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
+    )
     result = await neuron_ref.get_certificate()
 
     assert result == mock_certificate
     mocked_subtensor.subtensor_module.NeuronCertificates.get.assert_called_once_with(
         1,  # netuid
         "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",  # hotkey
-        block_hash=None
+        block_hash=None,
     )
 
 
@@ -153,12 +158,16 @@ async def test_get_certificate_with_block_hash(mocked_subtensor, bittensor):
     mock_certificate = {
         "algorithm": 1,
         "public_key": "0x1234567890abcdef",
-        "signature": "0xfedcba0987654321"
+        "signature": "0xfedcba0987654321",
     }
-    mocked_subtensor.subtensor_module.NeuronCertificates.get.return_value = mock_certificate
+    mocked_subtensor.subtensor_module.NeuronCertificates.get.return_value = (
+        mock_certificate
+    )
 
     subnet_ref = bittensor.subnet(1)
-    neuron_ref = subnet_ref.neuron(hotkey="5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM")
+    neuron_ref = subnet_ref.neuron(
+        hotkey="5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
+    )
     block_hash = "0xabcdef1234567890"
     result = await neuron_ref.get_certificate(block_hash=block_hash)
 
@@ -166,7 +175,7 @@ async def test_get_certificate_with_block_hash(mocked_subtensor, bittensor):
     mocked_subtensor.subtensor_module.NeuronCertificates.get.assert_called_once_with(
         1,  # netuid
         "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM",  # hotkey
-        block_hash=block_hash
+        block_hash=block_hash,
     )
 
 
@@ -176,7 +185,9 @@ async def test_get_certificate_not_found(mocked_subtensor, bittensor):
     mocked_subtensor.subtensor_module.NeuronCertificates.get.return_value = None
 
     subnet_ref = bittensor.subnet(1)
-    neuron_ref = subnet_ref.neuron(hotkey="5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM")
+    neuron_ref = subnet_ref.neuron(
+        hotkey="5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
+    )
     result = await neuron_ref.get_certificate()
 
     assert result is None

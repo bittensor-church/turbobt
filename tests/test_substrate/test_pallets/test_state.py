@@ -3,9 +3,7 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_call(substrate, mocked_transport):
-    mocked_transport.responses["state_call"][
-        "Metadata_metadata_at_version"
-    ] = {
+    mocked_transport.responses["state_call"]["Metadata_metadata_at_version"] = {
         "result": "0x00",
     }
 

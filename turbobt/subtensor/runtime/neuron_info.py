@@ -71,10 +71,7 @@ class NeuronInfoRuntimeApi(RuntimeApi):
         if not result:
             return None
 
-        return [
-            self._decode_neuron(neuron)
-            for neuron in result
-        ]
+        return [self._decode_neuron(neuron) for neuron in result]
 
     def _decode_neuron(self, neuron: dict) -> dict:
         for key in ("coldkey", "hotkey"):

@@ -44,43 +44,54 @@ BITTENSOR_VERSION_INT = sum(
 )
 
 
+class Commitment(typing.TypedDict):
+    data: bytes
+    block: int
+
+
 class SubnetCommitments:
     def __init__(self, subnet: Subnet, client: Bittensor):
         self.subnet = subnet
         self.client = client
 
-    async def get(self, hotkey: str, block_hash: str | None = None) -> bytes | None:
-        commitments = await self.client.subtensor.commitments.CommitmentOf.get(
+    async def get(
+        self, hotkey: str, block_hash: str | None = None
+    ) -> Commitment | None:
+        registration = await self.client.subtensor.commitments.CommitmentOf.get(
             self.subnet.netuid,
             hotkey,
             block_hash=block_hash or get_ctx_block_hash(),
         )
 
-        if not commitments:
+        if not registration:
             return None
 
-        return next(
+        data = next(
             bytes.fromhex(value[2:] or "")
-            for field in commitments["info"]["fields"]
+            for field in registration["info"]["fields"]
             for value in field.values()
         )
+        return {"data": data, "block": registration["block"]}
 
-    async def fetch(self, block_hash: str | None = None) -> dict[str, bytes]:
-        commitments = await self.client.subtensor.commitments.CommitmentOf.fetch(
+    async def fetch(self, block_hash: str | None = None) -> dict[str, Commitment]:
+        registrations = await self.client.subtensor.commitments.CommitmentOf.fetch(
             self.subnet.netuid,
             block_hash=block_hash or get_ctx_block_hash(),
         )
 
-        if not commitments:
+        if not registrations:
             return {}
 
         return {
-            hotkey: next(
-                bytes.fromhex(value[2:] or "")
-                for field in value["info"]["fields"]
-                for value in field.values()
-            )
-            for (netuid, hotkey), value in commitments
+            hotkey: {
+                "data": next(
+                    bytes.fromhex(v[2:] or "")
+                    for field in registration["info"]["fields"]
+                    for v in field.values()
+                ),
+                "block": registration["block"],
+            }
+            for (netuid, hotkey), registration in registrations
         }
 
     async def set(
@@ -130,15 +141,19 @@ class SubnetNeurons:
         wallet: bittensor_wallet.Wallet | None = None,
     ) -> None:
         if self.subnet.netuid == 0:
-            extrinsic = await self.subnet.client.subtensor.subtensor_module.root_register(
-                hotkey=hotkey.ss58_address,
-                wallet=wallet or self.subnet.client.wallet,
+            extrinsic = (
+                await self.subnet.client.subtensor.subtensor_module.root_register(
+                    hotkey=hotkey.ss58_address,
+                    wallet=wallet or self.subnet.client.wallet,
+                )
             )
         else:
-            extrinsic = await self.subnet.client.subtensor.subtensor_module.burned_register(
-                netuid=self.subnet.netuid,
-                hotkey=hotkey.ss58_address,
-                wallet=wallet or self.subnet.client.wallet,
+            extrinsic = (
+                await self.subnet.client.subtensor.subtensor_module.burned_register(
+                    netuid=self.subnet.netuid,
+                    hotkey=hotkey.ss58_address,
+                    wallet=wallet or self.subnet.client.wallet,
+                )
             )
 
         async with asyncio.timeout(timeout):
@@ -154,16 +169,20 @@ class SubnetNeurons:
     ):
         if certificate:
             if not isinstance(certificate, bytes):
-                certificate = bytes([certificate["algorithm"]]) + bytes.fromhex(certificate["public_key"])
+                certificate = bytes([certificate["algorithm"]]) + bytes.fromhex(
+                    certificate["public_key"]
+                )
 
-            extrinsic = await self.subnet.client.subtensor.subtensor_module.serve_axon_tls(
-                certificate=certificate,
-                ip=ip,
-                netuid=self.subnet.netuid,
-                port=port,
-                protocol=AxonProtocolEnum.HTTP,
-                version=BITTENSOR_VERSION_INT,
-                wallet=wallet or self.subnet.client.wallet,
+            extrinsic = (
+                await self.subnet.client.subtensor.subtensor_module.serve_axon_tls(
+                    certificate=certificate,
+                    ip=ip,
+                    netuid=self.subnet.netuid,
+                    port=port,
+                    protocol=AxonProtocolEnum.HTTP,
+                    version=BITTENSOR_VERSION_INT,
+                    wallet=wallet or self.subnet.client.wallet,
+                )
             )
         else:
             extrinsic = await self.subnet.client.subtensor.subtensor_module.serve_axon(
@@ -178,7 +197,9 @@ class SubnetNeurons:
         async with asyncio.timeout(timeout):
             await extrinsic.wait_for_finalization()
 
-    async def get_certificates(self, block_hash: str | None = None) -> dict[HotKey, NeuronCertificate]:
+    async def get_certificates(
+        self, block_hash: str | None = None
+    ) -> dict[HotKey, NeuronCertificate]:
         def strip_0x(certificate: NeuronCertificate) -> NeuronCertificate:
             certificate["public_key"] = certificate["public_key"].removeprefix("0x")
             return certificate
@@ -188,17 +209,16 @@ class SubnetNeurons:
             block_hash=block_hash,
         )
 
-        return {
-            elem[0][1]: strip_0x(elem[1])
-            for elem in certificates
-        }
+        return {elem[0][1]: strip_0x(elem[1]) for elem in certificates}
 
     async def generate_certificate_keypair(
         self,
         algorithm: CertificateAlgorithm = CertificateAlgorithm.ED25519,
         timeout: float | None = None,
     ) -> NeuronCertificateKeypair | None:
-        neuron = await self.subnet.get_neuron(self.subnet.client.wallet.hotkey.ss58_address)
+        neuron = await self.subnet.get_neuron(
+            self.subnet.client.wallet.hotkey.ss58_address
+        )
         if neuron is None:
             return None
 
@@ -388,9 +408,11 @@ class SubnetWeights:
             tuple[bytes, int],
         ],
     ]:
-        weights = await self.client.subtensor.subtensor_module.TimelockedWeightCommits.fetch(
-            self.subnet.netuid,
-            block_hash=block_hash or get_ctx_block_hash(),
+        weights = (
+            await self.client.subtensor.subtensor_module.TimelockedWeightCommits.fetch(
+                self.subnet.netuid,
+                block_hash=block_hash or get_ctx_block_hash(),
+            )
         )
 
         if not weights:
@@ -415,10 +437,7 @@ class SubnetWeights:
             return {}
 
         if not max_weight:
-            return {
-                uid: 0
-                for uid in weights
-            }
+            return {uid: 0 for uid in weights}
 
         return {
             uid: float_to_u16_proportion(weight / max_weight)
@@ -460,13 +479,17 @@ class SubnetReference:
 
         return subnet
 
-    async def get_hyperparameters(self, block_hash: str | None = None) -> SubnetHyperparams | None:
+    async def get_hyperparameters(
+        self, block_hash: str | None = None
+    ) -> SubnetHyperparams | None:
         return await self.client.subtensor.subnet_info.get_subnet_hyperparams(
             self.netuid,
             block_hash=block_hash or get_ctx_block_hash(),
         )
 
-    async def get_hyperparameters_v2(self, block_hash: str | None = None) -> SubnetHyperparamsV2 | None:
+    async def get_hyperparameters_v2(
+        self, block_hash: str | None = None
+    ) -> SubnetHyperparamsV2 | None:
         return await self.client.subtensor.subnet_info.get_subnet_hyperparams_v2(
             self.netuid,
             block_hash=block_hash or get_ctx_block_hash(),

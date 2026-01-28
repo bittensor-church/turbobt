@@ -70,7 +70,7 @@ async def test_in_memory_storage_maxsize():
             ),
             False,
         ),
-    ]
+    ],
 )
 @pytest.mark.asyncio
 async def test_cache_control_is_cachable(rpc_request, cachable):
@@ -134,4 +134,3 @@ async def test_cache_transport():
         assert mocked_transport.send.call_count == 2
 
     assert len(storage) == 1
-

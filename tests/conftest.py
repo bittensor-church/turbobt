@@ -14,9 +14,7 @@ def monkeypatch_keypair(alice_wallet):
     assert alice_wallet.hotkey != alice_wallet.hotkey, "Keypair.__eq__ fixed!"
 
     with unittest.mock.patch.object(
-        bittensor_wallet.Keypair,
-        "__eq__",
-        lambda self, other: str(self) == str(other)
+        bittensor_wallet.Keypair, "__eq__", lambda self, other: str(self) == str(other)
     ):
         yield
 
