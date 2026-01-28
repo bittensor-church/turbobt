@@ -79,7 +79,7 @@ class Subtensor(Substrate):
             scalecodec.ScaleBytes(response),
         )
 
-    async def rpc(self, method: str, params: dict) -> int | bytearray | dict:
+    async def rpc(self, method: str, params: dict | list) -> int | bytearray | dict:
         try:
             return await super().rpc(method, params)
         except CustomTransactionError as e:

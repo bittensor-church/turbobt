@@ -158,17 +158,23 @@ class Substrate:
     async def close(self) -> None:
         await self._transport.close()
 
-    async def rpc(self, method: str, params: dict) -> int | bytearray | dict:
+    async def rpc(self, method: str, params: dict | list) -> int | bytearray | dict:
         """
         Send a JSON-RPC Request.
 
         :param method: The name of the method to be invoked.
         :type method: str
         :param params: Parameter values to be used during the invocation of the method.
-        :type params: dict
+        :type params: dict | list
         :return: JSON-RPC Response
         :rtype: int | bytearray | dict
         """
+
+        if isinstance(params, dict):
+            params_list = list(params.values())
+            while params_list and params_list[-1] is None:
+                params_list.pop()
+            params = params_list
 
         request = Request(
             method=method,

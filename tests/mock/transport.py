@@ -18,8 +18,8 @@ class MockedTransport(turbobt.substrate.transports.base.BaseTransport):
 
             if request.method == "state_call":
                 try:
-                    response = response[request.params["name"]]
-                except KeyError:
+                    response = response[request.params[0]]
+                except (KeyError, IndexError):
                     response = {}
 
             return Response(
