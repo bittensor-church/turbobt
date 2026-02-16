@@ -47,10 +47,20 @@ class StorageDoubleMap(typing.Generic[K1, K2, V]):
             args,
         )
 
-        keys = await self.subtensor.state.getKeys(
-            prefix,
-            block_hash=block_hash,
-        )
+        page_size = 1000
+        keys = []
+        start_key = ""
+        while True:
+            page = await self.subtensor.state.getKeysPaged(
+                prefix,
+                page_size,
+                start_key=start_key,
+                block_hash=block_hash,
+            )
+            keys.extend(page)
+            if len(page) < page_size:
+                break
+            start_key = page[-1]
         results = await self.subtensor.state.queryStorageAt(
             keys,
             block_hash=block_hash,
