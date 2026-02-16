@@ -66,7 +66,7 @@ class Subtensor(Substrate):
 
         response = await self.state.call(
             f"{api['name']}_{method['name']}",
-            data.hex(),
+            f"0x{data.hex()}",
             block_hash,
         )
 
