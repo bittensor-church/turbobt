@@ -15,6 +15,7 @@ from .cache import (
 from .pallets import (
     AdminUtils,
     Commitments,
+    Drand,
     SubtensorModule,
     Sudo,
 )
@@ -39,6 +40,7 @@ class Subtensor(Substrate):
 
         self.admin_utils = AdminUtils(self)
         self.commitments = Commitments(self)
+        self.drand = Drand(self)
         self.subtensor_module = SubtensorModule(self)
         self.sudo = Sudo(self)
 

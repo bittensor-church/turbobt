@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.11"
 
 [[package]]
@@ -415,16 +415,16 @@ wheels = [
 
 [[package]]
 name = "scalecodec"
-version = "1.2.11"
+version = "1.2.12"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "base58" },
     { name = "more-itertools" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/bc/7c/703893e7a8751318517a3dd8c0c060b2c30ffa33f4ab5dd6a4ed483f7967/scalecodec-1.2.11.tar.gz", hash = "sha256:99a2cdbfccdcaf22bd86b86da55a730a2855514ad2309faef4a4a93ac6cbeb8d", size = 150260, upload-time = "2024-07-05T11:48:46.146Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b8/3c/4c3e3fa0efd75eb1e00b9bd6ccce8e0018e0789bff35d76cc9ce554354d0/scalecodec-1.2.12.tar.gz", hash = "sha256:aa54cc901970289fe64ae01edf076f25f60f8d7e4682979b827cab73dde74393", size = 150568, upload-time = "2025-10-16T14:01:55.231Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bb/60/2a903fa9ed3dfc842240da22969a25b16ea213ed3ee25b7ba8ae1cba20c7/scalecodec-1.2.11-py3-none-any.whl", hash = "sha256:d15c94965f617caa25096f83a45f5f73031d05e6ee08d6039969f0a64fc35de1", size = 99164, upload-time = "2024-07-05T11:48:42.777Z" },
+    { url = "https://files.pythonhosted.org/packages/9f/e0/a080f62ccb71ace2330081badae678d2f5349078388459a60af927814695/scalecodec-1.2.12-py3-none-any.whl", hash = "sha256:b9de1a2d3d98b9e4285804478d8f5f13b3787ebc4d05625eb0054add7feebe45", size = 99164, upload-time = "2025-10-16T14:01:53.517Z" },
 ]
 
 [[package]]
@@ -464,7 +464,7 @@ requires-dist = [
     { name = "bittensor-wallet", specifier = "~=4.0.0" },
     { name = "eciespy", specifier = "~=0.4.6" },
     { name = "httpx", specifier = "~=0.26.0" },
-    { name = "scalecodec", specifier = "~=1.2.11" },
+    { name = "scalecodec", specifier = "~=1.2.12" },
     { name = "websockets", specifier = "~=14.1" },
     { name = "xxhash", specifier = "~=3.5.0" },
 ]
