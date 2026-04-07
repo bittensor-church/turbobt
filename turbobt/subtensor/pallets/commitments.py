@@ -17,14 +17,18 @@ if typing.TYPE_CHECKING:
     from .. import Subtensor
 
 
-class CommitmentInfo(typing.TypedDict):
-    fields: list[dict[str, str]]
+class SetCommitmentInfo(typing.TypedDict):
+    fields: list[list[dict[str, bytes | dict[str, bytes | int]]]]
+
+
+class GetCommitmentInfo(typing.TypedDict):
+    fields: list[str | dict[str, str | dict[str, str | int]]]
 
 
 class Registration(typing.TypedDict):
     block: int
     deposit: int
-    info: CommitmentInfo
+    info: GetCommitmentInfo
 
 
 class Commitments(Pallet):
@@ -37,10 +41,18 @@ class Commitments(Pallet):
             "CommitmentOf",
         )
 
+        self.RevealedCommitments = StorageDoubleMap[
+            NetUid, HotKey, list[tuple[str, int]]
+        ](
+            subtensor,
+            "Commitments",
+            "RevealedCommitments",
+        )
+
     async def set_commitment(
         self,
         netuid: int,
-        info: CommitmentInfo,
+        info: SetCommitmentInfo,
         wallet: bittensor_wallet.Wallet,
         era: Era | None = DEFAULT_ERA,
     ) -> ExtrinsicResult:
@@ -50,7 +62,7 @@ class Commitments(Pallet):
         :param netuid: The unique identifier of the subnet.
         :type netuid: int
         :param info: The commitment info to set.
-        :type info: CommitmentInfo
+        :type info: SetCommitmentInfo
         :param wallet: The wallet associated with the account making this call.
         :type wallet:
         :return: An asynchronous result of the extrinsic submission.
