@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import dataclasses
 import typing
+from typing import Literal, Required, TypedDict, cast
 
 import bittensor_drand
 import bittensor_wallet
@@ -27,6 +28,7 @@ from .substrate._scalecodec import (
     float_to_u16_proportion,
     u16_proportion_to_float,
 )
+from .subtensor.pallets.commitments import Registration, SetCommitmentInfo
 from .subtensor.pallets.subtensor_module import (
     CertificateAlgorithm,
     NeuronCertificate,
@@ -43,10 +45,16 @@ BITTENSOR_VERSION_INT = sum(
     e * (1000**i) for i, e in enumerate(reversed(BITTENSOR_VERSION))
 )
 
+class Commitment(TypedDict, total=False):
+    kind: Required[Literal["hex_data", "timelock_encrypted"]]
+    data: Required[bytes]
+    block: Required[int]
+    reveal_round: int  # value provided for time_encrypted
 
-class Commitment(typing.TypedDict):
-    data: bytes
-    block: int
+
+class RevealedCommitment(TypedDict):
+    data: str
+    reveal_block: int
 
 
 class SubnetCommitments:
@@ -66,12 +74,21 @@ class SubnetCommitments:
         if not registration:
             return None
 
-        data = next(
-            bytes.fromhex(value[2:] or "")
-            for field in registration["info"]["fields"]
-            for value in field.values()
+        return _map_to_commitment(registration)
+
+    async def get_revealed(
+        self, hotkey: str, block_hash: str | None = None
+    ) -> list[RevealedCommitment] | None:
+        data = await self.client.subtensor.commitments.RevealedCommitments.get(
+            self.subnet.netuid,
+            hotkey,
+            block_hash=block_hash or get_ctx_block_hash(),
         )
-        return {"data": data, "block": registration["block"]}
+
+        if not data:
+            return None
+
+        return [_map_to_revealed_commitment(raw) for raw in data]
 
     async def fetch(self, block_hash: str | None = None) -> dict[str, Commitment]:
         registrations = await self.client.subtensor.commitments.CommitmentOf.fetch(
@@ -83,15 +100,23 @@ class SubnetCommitments:
             return {}
 
         return {
-            hotkey: {
-                "data": next(
-                    bytes.fromhex(v[2:] or "")
-                    for field in registration["info"]["fields"]
-                    for v in field.values()
-                ),
-                "block": registration["block"],
-            }
-            for (netuid, hotkey), registration in registrations
+            hotkey: _map_to_commitment(registration)
+            for (_, hotkey), registration in registrations
+        }
+
+    async def fetch_revealed(
+        self, block_hash: str | None = None
+    ) -> dict[str, list[RevealedCommitment]]:
+        data = await self.client.subtensor.commitments.RevealedCommitments.fetch(
+            self.subnet.netuid,
+            block_hash=block_hash or get_ctx_block_hash(),
+        )
+        if not data:
+            return {}
+
+        return {
+            hotkey: [_map_to_revealed_commitment(raw) for raw in revealed_commitments]
+            for (_, hotkey), revealed_commitments in data
         }
 
     async def set(
@@ -99,19 +124,47 @@ class SubnetCommitments:
         data: bytes,
         wallet: bittensor_wallet.Wallet | None = None,
     ):
-        return await self.client.subtensor.commitments.set_commitment(
-            self.subnet.netuid,
-            {
-                "fields": [
-                    [
-                        {
-                            f"Raw{len(data)}": data,
-                        },
-                    ],
+        info: SetCommitmentInfo = {
+            "fields": [
+                [
+                    {
+                        f"Raw{len(data)}": data,
+                    },
                 ],
-            },
-            wallet=wallet or self.client.wallet,
+            ],
+        }
+        return await self.client.subtensor.commitments.set_commitment(
+            self.subnet.netuid, info, wallet=wallet or self.client.wallet
         )
+
+    async def set_revealed(
+        self,
+        data: str,
+        blocks_until_reveal: int = 360,
+        block_time: int | float = 12,
+        wallet: bittensor_wallet.Wallet | None = None,
+    ) -> int:
+        encrypted, reveal_round = bittensor_drand.get_encrypted_commitment(
+            data, blocks_until_reveal, block_time
+        )
+
+        info: SetCommitmentInfo = {
+            "fields": [
+                [
+                    {
+                        "TimelockEncrypted": {
+                            "encrypted": encrypted,
+                            "reveal_round": reveal_round,
+                        },
+                    },
+                ],
+            ],
+        }
+        await self.client.subtensor.commitments.set_commitment(
+            self.subnet.netuid, info, wallet=wallet or self.client.wallet
+        )
+
+        return reveal_round
 
 
 class SubnetNeurons:
@@ -603,3 +656,56 @@ class Subnets:
             await extrinsic.wait_for_finalization()
 
         # return SubnetReference(None, self._subtensor) # TODO id
+
+
+def _map_to_commitment(registration: Registration) -> Commitment:
+    """
+    Maps registration data to a commitment.
+    """
+    print(registration)
+    field = next(
+        (field for field in registration["info"]["fields"] if type(field) is dict), None
+    )
+    if field is None:
+        raise ValueError("No data field found in commitment info")
+
+    if "TimelockEncrypted" in field:
+        commitment: Commitment = {
+            "kind": "timelock_encrypted",
+            "data": bytes.fromhex(field["TimelockEncrypted"]["encrypted"][2:]),
+            "block": registration["block"],
+            "reveal_round": cast(int, field["TimelockEncrypted"]["reveal_round"]),
+        }
+    else:
+        commitment: Commitment = {
+            "kind": "hex_data",
+            "data": bytes.fromhex(next(iter(field.values()))[2:]),
+            "block": registration["block"],
+        }
+
+    return commitment
+
+
+def _map_to_revealed_commitment(raw: tuple[str, int]) -> RevealedCommitment:
+    return {"data": _decode_revealed_commitment_str(raw[0]), "reveal_block": raw[1]}
+
+
+def _decode_revealed_commitment_str(raw: str) -> str:
+    """
+    Remove the SCALE compact-length prefix from an on-chain revealed commitment string.
+
+    The input is a revealed commitment value read from chain storage. It includes the
+    SCALE compact-length prefix added by bittensor_drand.get_encrypted_commitment()
+    when the original commitment string was encoded for storage.
+    After the commitment is revealed, that prefix is still present in the stored value.
+    """
+    if not raw:
+        return ""
+
+    mode = ord(raw[0]) & 0b11
+    scale_offset = {0: 1, 1: 2, 2: 4}.get(mode)
+
+    if scale_offset is None:
+        raise ValueError("Unsupported SCALE compact encoding mode")
+
+    return raw[scale_offset:]

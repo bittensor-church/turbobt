@@ -4,6 +4,7 @@ import bittensor_wallet
 
 from .batch import Batch, Transaction
 from .block import BlockReference, Blocks
+from .drand import ChainDrand
 from .subnet import (
     SubnetReference,
     Subnets,
@@ -24,6 +25,7 @@ class Bittensor:
         )
 
         self.subnets = Subnets(self)
+        self.drand = ChainDrand(self)
         self.blocks = Blocks(self)
         self.wallet = wallet
 

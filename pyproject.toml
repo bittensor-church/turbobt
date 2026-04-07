@@ -21,7 +21,7 @@ dependencies = [
     "bittensor-wallet~=4.0.0",
     "eciespy~=0.4.6",
     "httpx~=0.26.0",
-    "scalecodec~=1.2.11",
+    "scalecodec~=1.2.12",
     "websockets~=14.1",
     "xxhash~=3.5.0",
 ]
