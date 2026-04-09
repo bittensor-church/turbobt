@@ -45,6 +45,7 @@ BITTENSOR_VERSION_INT = sum(
     e * (1000**i) for i, e in enumerate(reversed(BITTENSOR_VERSION))
 )
 
+
 class Commitment(TypedDict, total=False):
     kind: Required[Literal["hex_data", "timelock_encrypted"]]
     data: Required[bytes]
@@ -702,10 +703,25 @@ def _decode_revealed_commitment_str(raw: str) -> str:
     if not raw:
         return ""
 
-    mode = ord(raw[0]) & 0b11
-    scale_offset = {0: 1, 1: 2, 2: 4}.get(mode)
+    def get_scale_offset(value: int) -> int:
+        mode = value & 0b11
+        offset = {0: 1, 1: 2, 2: 4}.get(mode)
+        if offset is None:
+            raise ValueError("Unsupported SCALE compact encoding mode")
+        return offset
 
-    if scale_offset is None:
-        raise ValueError("Unsupported SCALE compact encoding mode")
-
-    return raw[scale_offset:]
+    if raw.startswith("0x") and len(raw.encode()) != 13:
+        """
+        scalecodec Vec<U8> decoding ambiguity fix.
+        0x prefixed string of length other than 13 must be a result of UnicodeDecodeError fallback
+        in scalecodec Vec.process() for Vec<U8>.
+        If 0 prefixed string was a result of successful decoding, it must have length 13 as 0
+        is scale compact-length prefix added by bittensor_drand.get_encrypted_commitment()
+        meaning length 12 (ord('0') // 4)
+        """
+        data = bytes.fromhex(raw[2:])
+        scale_offset = get_scale_offset(data[0])
+        return data[scale_offset:].decode()
+    else:
+        scale_offset = get_scale_offset(ord(raw[0]))
+        return raw[scale_offset:]
