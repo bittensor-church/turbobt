@@ -7,6 +7,7 @@ from .block import get_ctx_block_hash
 if typing.TYPE_CHECKING:
     from .client import Bittensor
 
+
 class ChainDrand:
     def __init__(self, client: Bittensor):
         self.client = client
