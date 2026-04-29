@@ -429,7 +429,7 @@ class SubnetWeights:
                 netuid=self.subnet.netuid,
                 subnet_reveal_period_epochs=hyperparameters["commit_reveal_period"],
                 block_time=block_time,
-                hotkey=self.subnet.client.wallet.hotkey.public_key,
+                hotkey=(wallet or self.subnet.client.wallet).hotkey.public_key,
             )
 
         extrinsic = await self.client.subtensor.subtensor_module.commit_timelocked_mechanism_weights(
