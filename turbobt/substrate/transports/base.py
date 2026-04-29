@@ -24,6 +24,14 @@ class Timeout:
 
 
 class BaseTransport:
+    @staticmethod
+    def _wire_params(params: dict | list) -> list:
+        # this is shit; if we need positional params we'll have to do it properly
+        if isinstance(params, dict):
+            return list(params.values())
+
+        return params
+
     async def __aenter__(self: T) -> T:
         return self
 

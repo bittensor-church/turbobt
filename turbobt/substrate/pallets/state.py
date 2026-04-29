@@ -231,6 +231,40 @@ class State(Pallet):
             },
         )
 
+    async def queryStorage(
+        self,
+        keys: list[str],
+        from_block_hash: str,
+        to_block_hash: str | None = None,
+    ) -> list[StorageChangeSet]:
+        """
+        Query storage entries (by key) across a block range.
+
+        :param keys: An array representing the key or keys for which you want to
+            retrieve storage entries.
+        :type keys: list[str]
+        :param from_block_hash: The hash of the block where the historical query
+            should start.
+        :type from_block_hash: str
+        :param to_block_hash: The hash of the block where the historical query
+            should stop. If not provided, the node default is used.
+        :type to_block_hash: str | None
+        :return: An array representing the set of changes to the storage entries
+            across the specified block range.
+        :rtype: list[StorageChangeSet]
+        """
+
+        await self.substrate._init_runtime()
+
+        return await self.substrate.rpc(
+            method="state_queryStorage",
+            params={
+                "keys": keys,
+                "from_block": from_block_hash,
+                "to_block": to_block_hash,
+            },
+        )
+
     async def subscribeStorage(
         self,
         key: str,

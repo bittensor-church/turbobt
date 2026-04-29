@@ -65,8 +65,10 @@ class Chain(Pallet):
 
         return result
 
-    # TODO accepts list of numbers? Option<ListOrValue<NumberOrHex>>
-    async def getBlockHash(self, block_number: int | None = None) -> str | None:
+    async def getBlockHash(
+        self,
+        block_number: int | list[int] | None = None,
+    ) -> str | list[str] | None:
         """
         Get the block hash for a specific block.
         """
@@ -80,6 +82,9 @@ class Chain(Pallet):
 
         if not block_hash:
             return None
+
+        if isinstance(block_hash, list):
+            return block_hash
 
         return f"0x{block_hash.hex()}"
 
@@ -101,6 +106,21 @@ class Chain(Pallet):
         block["number"] = int(block["number"], 16)
 
         return block
+
+    async def getFinalizedHead(self) -> str | None:
+        """
+        Retrieves the latest finalized block hash.
+        """
+
+        block_hash = await self.substrate.rpc(
+            method="chain_getFinalizedHead",
+            params=[],
+        )
+
+        if not block_hash:
+            return None
+
+        return f"0x{block_hash.hex()}"
 
     async def subscribeFinalizedHeads(self) -> str:
         """

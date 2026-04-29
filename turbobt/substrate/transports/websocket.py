@@ -179,7 +179,7 @@ class WebSocketTransport(BaseTransport):
                         json.dumps(
                             {
                                 "method": request.method,
-                                "params": request.params,
+                                "params": self._wire_params(request.params),
                                 "id": future_id,
                                 "jsonrpc": "2.0",
                             }

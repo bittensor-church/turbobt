@@ -42,7 +42,7 @@ class HTTPTransport(BaseTransport):
             },
             json={
                 "method": request.method,
-                "params": request.params,
+                "params": self._wire_params(request.params),
                 "id": self._id,
                 "jsonrpc": "2.0",
             },
