@@ -134,9 +134,10 @@ class SubnetCommitments:
                 ],
             ],
         }
-        return await self.client.subtensor.commitments.set_commitment(
+        extrinsic = await self.client.subtensor.commitments.set_commitment(
             self.subnet.netuid, info, wallet=wallet or self.client.wallet
         )
+        await extrinsic.wait_for_finalization()
 
     async def set_revealed(
         self,
@@ -161,9 +162,10 @@ class SubnetCommitments:
                 ],
             ],
         }
-        await self.client.subtensor.commitments.set_commitment(
+        extrinsic = await self.client.subtensor.commitments.set_commitment(
             self.subnet.netuid, info, wallet=wallet or self.client.wallet
         )
+        await extrinsic.wait_for_finalization()
 
         return reveal_round
 
@@ -364,6 +366,15 @@ class SubnetWeights:
         version_key: int = BITTENSOR_VERSION_INT,
         wallet: bittensor_wallet.Wallet | None = None,
     ) -> None:
+        await self.set_mechanism(0, weights, version_key, wallet)
+
+    async def set_mechanism(
+        self,
+        mechanism_id: int,
+        weights: dict[int, float],
+        version_key: int = BITTENSOR_VERSION_INT,
+        wallet: bittensor_wallet.Wallet | None = None,
+    ) -> None:
         weights = self._normalize(weights)
 
         try:
@@ -371,9 +382,10 @@ class SubnetWeights:
         except ValueError:
             uids, weights = [], []
 
-        extrinsic = await self.client.subtensor.subtensor_module.set_weights(
+        extrinsic = await self.client.subtensor.subtensor_module.set_mechanism_weights(
             self.subnet.netuid,
             list(uids),
+            mechanism_id,
             list(weights),
             version_key=version_key,
             wallet=wallet or self.subnet.client.wallet,
@@ -386,7 +398,17 @@ class SubnetWeights:
         weights: dict[int, float],
         version_key: int = BITTENSOR_VERSION_INT,
         wallet: bittensor_wallet.Wallet | None = None,
-        block_time: int = 12,
+        block_time: int | float = 12,
+    ) -> int:
+        return await self.commit_mechanism(0, weights, version_key, wallet, block_time)
+
+    async def commit_mechanism(
+        self,
+        mechanism_id: int,
+        weights: dict[int, float],
+        version_key: int = BITTENSOR_VERSION_INT,
+        wallet: bittensor_wallet.Wallet | None = None,
+        block_time: int | float = 12,
     ) -> int:
         weights = self._normalize(weights)
 
@@ -407,17 +429,16 @@ class SubnetWeights:
                 netuid=self.subnet.netuid,
                 subnet_reveal_period_epochs=hyperparameters["commit_reveal_period"],
                 block_time=block_time,
-                hotkey=self.subnet.client.wallet.hotkey.public_key,
+                hotkey=(wallet or self.subnet.client.wallet).hotkey.public_key,
             )
 
-        extrinsic = (
-            await self.client.subtensor.subtensor_module.commit_timelocked_weights(
-                self.subnet.netuid,
-                commit,
-                reveal_round,
-                commit_reveal_version=4,
-                wallet=wallet or self.subnet.client.wallet,
-            )
+        extrinsic = await self.client.subtensor.subtensor_module.commit_timelocked_mechanism_weights(
+            self.subnet.netuid,
+            commit,
+            mechanism_id,
+            reveal_round,
+            commit_reveal_version=4,
+            wallet=wallet or self.subnet.client.wallet,
         )
 
         await extrinsic.wait_for_finalization()
@@ -425,8 +446,14 @@ class SubnetWeights:
         return reveal_round
 
     async def get(self, uid: int, block_hash: str | None = None) -> dict[Uid, float]:
+        return await self.get_mechanism(0, uid, block_hash=block_hash)
+
+    async def get_mechanism(
+        self, mechanism_id: int, uid: int, block_hash: str | None = None
+    ) -> dict[Uid, float]:
+        storage_index = _get_mechid_storage_index(self.subnet.netuid, mechanism_id)
         weights = await self.client.subtensor.subtensor_module.Weights.get(
-            self.subnet.netuid,
+            storage_index,
             uid,
             block_hash=block_hash or get_ctx_block_hash(),
         )
@@ -437,8 +464,14 @@ class SubnetWeights:
         return {uid: u16_proportion_to_float(weight) for uid, weight in weights}
 
     async def fetch(self, block_hash: str | None = None) -> dict[Uid, dict[Uid, float]]:
+        return await self.fetch_mechanism(0, block_hash=block_hash)
+
+    async def fetch_mechanism(
+        self, mechanism_id: int, block_hash: str | None = None
+    ) -> dict[Uid, dict[Uid, float]]:
+        storage_index = _get_mechid_storage_index(self.subnet.netuid, mechanism_id)
         weights = await self.client.subtensor.subtensor_module.Weights.fetch(
-            self.subnet.netuid,
+            storage_index,
             block_hash=block_hash or get_ctx_block_hash(),
         )
 
@@ -453,18 +486,25 @@ class SubnetWeights:
         }
 
     async def fetch_pending(
+        self, block_hash: str | None = None
+    ) -> dict[int, dict[HotKey, WeightsCommited]]:
+        return await self.fetch_pending_mechanism(0, block_hash=block_hash)
+
+    async def fetch_pending_mechanism(
         self,
+        mechanism_id: int,
         block_hash: str | None = None,
     ) -> dict[
         int,
         dict[
             HotKey,
-            tuple[bytes, int],
+            WeightsCommited,
         ],
     ]:
+        storage_index = _get_mechid_storage_index(self.subnet.netuid, mechanism_id)
         weights = (
             await self.client.subtensor.subtensor_module.TimelockedWeightCommits.fetch(
-                self.subnet.netuid,
+                storage_index,
                 block_hash=block_hash or get_ctx_block_hash(),
             )
         )
@@ -473,7 +513,7 @@ class SubnetWeights:
             return {}
 
         return {
-            reveal_round: {
+            epoch: {
                 scalecodec.utils.ss58.ss58_encode(hotkey): WeightsCommited(
                     commit_block,
                     bytes.fromhex(commit[2:]),
@@ -481,7 +521,7 @@ class SubnetWeights:
                 )
                 for hotkey, commit_block, commit, round_number in commits
             }
-            for (netuid, reveal_round), commits in weights
+            for (_, epoch), commits in weights
         }
 
     def _normalize(self, weights: dict[int, float]) -> dict[int, int]:
@@ -685,6 +725,15 @@ def _map_to_commitment(registration: Registration) -> Commitment:
         }
 
     return commitment
+
+
+def _get_mechid_storage_index(netuid: int, mechanism_id: int) -> int:
+    """
+    Computes the storage index for a given netuid and mechanism_id pair.
+    Based on get_mechid_storage_index() helper in bittensor sdk.
+    """
+    GLOBAL_MAX_SUBNET_COUNT = 4096
+    return mechanism_id * GLOBAL_MAX_SUBNET_COUNT + netuid
 
 
 def _map_to_revealed_commitment(raw: tuple[str, int]) -> RevealedCommitment:

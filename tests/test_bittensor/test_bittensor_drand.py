@@ -8,7 +8,9 @@ async def test_get_last_stored_round(mocked_subtensor, bittensor):
 
     result = await bittensor.drand.get_last_stored_round()
     assert result == expected_round
-    mocked_subtensor.drand.get_last_stored_round.assert_called_once_with(block_hash=None)
+    mocked_subtensor.drand.get_last_stored_round.assert_called_once_with(
+        block_hash=None
+    )
 
     mocked_subtensor.drand.get_last_stored_round.reset_mock()
 
@@ -21,4 +23,6 @@ async def test_get_last_stored_round_with_block_hash(mocked_subtensor, bittensor
 
     result = await bittensor.drand.get_last_stored_round(block_hash=block_hash)
     assert result == expected_round
-    mocked_subtensor.drand.get_last_stored_round.assert_called_once_with(block_hash=block_hash)
+    mocked_subtensor.drand.get_last_stored_round.assert_called_once_with(
+        block_hash=block_hash
+    )
