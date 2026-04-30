@@ -109,12 +109,12 @@ async def test_commit_mechanism(
 ):
     subnet = bittensor.subnet(1)
 
-    await subnet.weights.commit_mechanism(
-        1,
+    await subnet.weights.commit(
         {
             0: 0.2,
             1: 0.8,
         },
+        mechanism_id=1,
     )
 
     mocked_subtensor.subtensor_module.commit_timelocked_mechanism_weights.assert_awaited_once_with(
@@ -133,7 +133,7 @@ async def test_commit_mechanism_empty(
 ):
     subnet = bittensor.subnet(1)
 
-    await subnet.weights.commit_mechanism(1, {})
+    await subnet.weights.commit({}, mechanism_id=1)
 
     mocked_subtensor.subtensor_module.commit_timelocked_mechanism_weights.assert_awaited_once_with(
         1,
@@ -151,12 +151,12 @@ async def test_commit_mechanism_zeros(
 ):
     subnet = bittensor.subnet(1)
 
-    await subnet.weights.commit_mechanism(
-        1,
+    await subnet.weights.commit(
         {
             0: 0.0,
             1: 0.0,
         },
+        mechanism_id=1,
     )
 
     mocked_subtensor.subtensor_module.commit_timelocked_mechanism_weights.assert_awaited_once_with(
@@ -231,12 +231,12 @@ async def test_set_zeros(mocked_subtensor, bittensor, alice_wallet):
 async def test_set_mechanism(mocked_subtensor, bittensor, alice_wallet):
     subnet = bittensor.subnet(1)
 
-    await subnet.weights.set_mechanism(
-        1,
+    await subnet.weights.set(
         {
             0: 0.2,
             1: 0.8,
         },
+        mechanism_id = 1,
     )
 
     mocked_subtensor.subtensor_module.set_mechanism_weights.assert_awaited_once_with(
@@ -253,7 +253,7 @@ async def test_set_mechanism(mocked_subtensor, bittensor, alice_wallet):
 async def test_set_mechanism_empty(mocked_subtensor, bittensor, alice_wallet):
     subnet = bittensor.subnet(1)
 
-    await subnet.weights.set_mechanism(1, {})
+    await subnet.weights.set({}, mechanism_id = 1)
 
     mocked_subtensor.subtensor_module.set_mechanism_weights.assert_awaited_once_with(
         1,
@@ -269,12 +269,12 @@ async def test_set_mechanism_empty(mocked_subtensor, bittensor, alice_wallet):
 async def test_set_mechanism_zeros(mocked_subtensor, bittensor, alice_wallet):
     subnet = bittensor.subnet(1)
 
-    await subnet.weights.set_mechanism(
-        1,
+    await subnet.weights.set(
         {
             0: 0.0,
             1: 0.0,
         },
+        mechanism_id = 1,
     )
 
     mocked_subtensor.subtensor_module.set_mechanism_weights.assert_awaited_once_with(
@@ -330,7 +330,7 @@ async def test_get_mechanism(mocked_subtensor, bittensor):
         ZippedWeights(101, 32768),
     ]
 
-    result = await subnet.weights.get_mechanism(1, 10)
+    result = await subnet.weights.get(10, mechanism_id=1)
 
     assert result == {
         100: u16_proportion_to_float(16384),
@@ -347,7 +347,7 @@ async def test_get_mechanism_empty(mocked_subtensor, bittensor):
 
     mocked_subtensor.subtensor_module.Weights.get.return_value = None
 
-    result = await subnet.weights.get_mechanism(1, 10)
+    result = await subnet.weights.get(10, mechanism_id=1)
 
     assert result == {}
     mocked_subtensor.subtensor_module.Weights.get.assert_awaited_once_with(
@@ -401,7 +401,7 @@ async def test_fetch_mechanism(mocked_subtensor, bittensor):
         ((1, 11), [ZippedWeights(101, 32768), ZippedWeights(102, 65535)]),
     ]
 
-    result = await subnet.weights.fetch_mechanism(1)
+    result = await subnet.weights.fetch(mechanism_id=1)
 
     assert result == {
         10: {100: u16_proportion_to_float(16384)},
@@ -421,7 +421,7 @@ async def test_fetch_mechanism_empty(mocked_subtensor, bittensor):
 
     mocked_subtensor.subtensor_module.Weights.fetch.return_value = []
 
-    result = await subnet.weights.fetch_mechanism(1)
+    result = await subnet.weights.fetch(mechanism_id=1)
 
     assert result == {}
     mocked_subtensor.subtensor_module.Weights.fetch.assert_awaited_once_with(
@@ -481,7 +481,7 @@ async def test_fetch_pending_mechanism(mocked_subtensor, bittensor):
         ((4097, 100), [(hotkey_bytes, 1000, "0x1234", 10)]),
     ]
 
-    result = await subnet.weights.fetch_pending_mechanism(1)
+    result = await subnet.weights.fetch_pending(mechanism_id=1)
 
     assert result == {
         100: {
@@ -499,7 +499,7 @@ async def test_fetch_pending_mechanism_empty(mocked_subtensor, bittensor):
 
     mocked_subtensor.subtensor_module.TimelockedWeightCommits.fetch.return_value = []
 
-    result = await subnet.weights.fetch_pending_mechanism(1)
+    result = await subnet.weights.fetch_pending(mechanism_id=1)
 
     assert result == {}
     mocked_subtensor.subtensor_module.TimelockedWeightCommits.fetch.assert_awaited_once_with(
