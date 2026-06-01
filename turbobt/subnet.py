@@ -30,6 +30,7 @@ from .substrate._scalecodec import (
 )
 from .subtensor.pallets.commitments import Registration, SetCommitmentInfo
 from .subtensor.pallets.subtensor_module import (
+    AssociatedEvmAddress,
     CertificateAlgorithm,
     NeuronCertificate,
     NeuronCertificateKeypair,
@@ -499,6 +500,24 @@ class SubnetWeights:
             for uid, weight in weights.items()
         }
 
+class SubnetAssociatedEvmAddresses:
+    def __init__(self, subnet: SubnetReference, client: Bittensor):
+        self.subnet = subnet
+        self.client = client
+
+    async def fetch(
+            self,
+            block_hash: str | None = None,
+    ) -> dict[int, AssociatedEvmAddress]:
+        entries = await self.client.subtensor.subtensor_module.AssociatedEvmAddress.fetch(
+            self.subnet.netuid,
+            block_hash=block_hash or get_ctx_block_hash(),
+        )
+
+        return {
+            uid: AssociatedEvmAddress(evm_address, last_block)
+            for (_netuid, uid), (evm_address, last_block) in entries
+        }
 
 @dataclasses.dataclass
 class SubnetReference:
@@ -511,6 +530,7 @@ class SubnetReference:
         self.commitments = SubnetCommitments(self, self.client)
         self.neurons = SubnetNeurons(self)
         self.weights = SubnetWeights(self)
+        self.associated_evm_addresses = SubnetAssociatedEvmAddresses(self, self.client)
 
     async def get(self, block_hash: str | None = None):
         dynamic_info = await self.client.subtensor.subnet_info.get_dynamic_info(
@@ -664,7 +684,6 @@ def _map_to_commitment(registration: Registration) -> Commitment:
     """
     Maps registration data to a commitment.
     """
-    print(registration)
     field = next(
         (field for field in registration["info"]["fields"] if type(field) is dict), None
     )
