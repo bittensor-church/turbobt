@@ -81,7 +81,7 @@ class Chain(Pallet):
         if not block_hash:
             return None
 
-        return f"0x{block_hash.hex()}"
+        return block_hash if isinstance(block_hash, str) else f"0x{block_hash.hex()}"
 
     async def getHeader(self, block_hash=None) -> Header | None:
         """
@@ -111,7 +111,11 @@ class Chain(Pallet):
             method="chain_subscribeFinalizedHeads",
             params={},
         )
-        subscription_id = f"0x{subscription_id_raw.hex()}"
+        subscription_id = (
+            subscription_id_raw
+            if isinstance(subscription_id_raw, str)
+            else f"0x{subscription_id_raw.hex()}"
+        )
 
         return subscription_id
 

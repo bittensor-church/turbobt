@@ -254,7 +254,11 @@ class State(Pallet):
                 "keys": [key],
             },
         )
-        subscription_id = f"0x{subscription_id_raw.hex()}"
+        subscription_id = (
+            subscription_id_raw
+            if isinstance(subscription_id_raw, str)
+            else f"0x{subscription_id_raw.hex()}"
+        )
 
         return subscription_id
 
