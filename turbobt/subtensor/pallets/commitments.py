@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import typing
 
-import bittensor_wallet
+from bittensor.wallet import Wallet
 
 from ...substrate.extrinsic import ExtrinsicResult
 from ...substrate.pallets.author import DEFAULT_ERA, Era
@@ -53,7 +53,7 @@ class Commitments(Pallet):
         self,
         netuid: int,
         info: SetCommitmentInfo,
-        wallet: bittensor_wallet.Wallet,
+        wallet: Wallet,
         era: Era | None = DEFAULT_ERA,
     ) -> ExtrinsicResult:
         """

@@ -1,36 +1,27 @@
 import json
 import os
-import tempfile
 import unittest.mock
 
-import bittensor_wallet
+import pytest
 import pytest_asyncio
+from bittensor.keyfiles import Keypair
+from bittensor.wallet import Wallet
 
 from tests.mock.transport import MockedTransport
 
 
-@pytest_asyncio.fixture(autouse=True, scope="session")
-def monkeypatch_keypair(alice_wallet):
-    assert alice_wallet.hotkey != alice_wallet.hotkey, "Keypair.__eq__ fixed!"
-
-    with unittest.mock.patch.object(
-        bittensor_wallet.Keypair, "__eq__", lambda self, other: str(self) == str(other)
-    ):
-        yield
-
-
-@pytest_asyncio.fixture(scope="session")
-def alice_wallet():
-    keypair = bittensor_wallet.Keypair.create_from_uri("//Alice")
-
-    wallet = bittensor_wallet.Wallet(
-        path=tempfile.mkdtemp(),
-    )
-    wallet.set_coldkey(keypair=keypair, encrypt=False, overwrite=True)
-    wallet.set_coldkeypub(keypair=keypair, encrypt=False, overwrite=True)
-    wallet.set_hotkey(keypair=keypair, encrypt=False, overwrite=True)
-
-    return wallet
+@pytest.fixture(scope="session")
+def alice_wallet(tmp_path_factory):
+    """Use native v11 keyfiles for the well-known Alice identity throughout the suite."""
+    path = str(tmp_path_factory.mktemp("wallets"))
+    wallet = Wallet(name="alice", path=path)
+    keypair = Keypair.create_from_uri("//Alice")
+    wallet.coldkey_file.set_keypair(keypair, encrypt=False)
+    wallet.hotkey_file.set_keypair(keypair, encrypt=False)
+    wallet.regenerate_coldkeypub(ss58_address=keypair.ss58_address)
+    wallet.regenerate_hotkeypub(ss58_address=keypair.ss58_address)
+    # Return a fresh instance so tests exercise loading the generated files.
+    return Wallet(name="alice", path=path)
 
 
 @pytest_asyncio.fixture(scope="session")

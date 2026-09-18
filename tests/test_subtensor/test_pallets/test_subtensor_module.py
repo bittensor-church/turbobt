@@ -45,7 +45,7 @@ async def test_commit_crv3_weights(subtensor, alice_wallet):
             "commit_reveal_version": CommitRevealVersion.CRV3,
         },
         era=None,
-        key=alice_wallet.coldkey,
+        key=alice_wallet.hotkey,
     )
 
 
@@ -71,7 +71,7 @@ async def test_commit_timelocked_weights(subtensor, alice_wallet):
             "commit_reveal_version": 4,
         },
         era=None,
-        key=alice_wallet.coldkey,
+        key=alice_wallet.hotkey,
     )
 
 
@@ -98,7 +98,7 @@ async def test_commit_timelocked_mechanism_weights(subtensor, alice_wallet):
             "commit_reveal_version": 4,
         },
         era=None,
-        key=alice_wallet.coldkey,
+        key=alice_wallet.hotkey,
     )
 
 
