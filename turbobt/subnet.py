@@ -6,8 +6,9 @@ import typing
 from typing import Literal, Required, TypedDict, cast
 
 import bittensor_drand
-import bittensor_wallet
 import scalecodec.utils.ss58
+from bittensor.keyfiles import Keypair
+from bittensor.wallet import Wallet
 from ecies.config import EllipticCurve
 from ecies.keys import PrivateKey as EciesPrivateKey
 
@@ -124,7 +125,7 @@ class SubnetCommitments:
     async def set(
         self,
         data: bytes,
-        wallet: bittensor_wallet.Wallet | None = None,
+        wallet: Wallet | None = None,
     ):
         info: SetCommitmentInfo = {
             "fields": [
@@ -145,7 +146,7 @@ class SubnetCommitments:
         data: str,
         blocks_until_reveal: int = 360,
         block_time: int | float = 12,
-        wallet: bittensor_wallet.Wallet | None = None,
+        wallet: Wallet | None = None,
     ) -> int:
         encrypted, reveal_round = bittensor_drand.get_encrypted_commitment(
             data, blocks_until_reveal, block_time
@@ -192,10 +193,10 @@ class SubnetNeurons:
 
     async def register(
         self,
-        hotkey: bittensor_wallet.Keypair,
+        hotkey: Keypair,
         *,
         timeout: float | None = None,
-        wallet: bittensor_wallet.Wallet | None = None,
+        wallet: Wallet | None = None,
     ) -> None:
         if self.subnet.netuid == 0:
             extrinsic = (
@@ -222,7 +223,7 @@ class SubnetNeurons:
         port: int,
         certificate: NeuronCertificate | bytes | None = None,
         timeout: float | None = None,
-        wallet: bittensor_wallet.Wallet | None = None,
+        wallet: Wallet | None = None,
     ):
         if certificate:
             if not isinstance(certificate, bytes):
@@ -365,7 +366,7 @@ class SubnetWeights:
         self,
         weights: dict[int, float],
         version_key: int = BITTENSOR_VERSION_INT,
-        wallet: bittensor_wallet.Wallet | None = None,
+        wallet: Wallet | None = None,
         mechanism_id: int = 0,
     ) -> None:
         weights = self._normalize(weights)
@@ -390,7 +391,7 @@ class SubnetWeights:
         self,
         weights: dict[int, float],
         version_key: int = BITTENSOR_VERSION_INT,
-        wallet: bittensor_wallet.Wallet | None = None,
+        wallet: Wallet | None = None,
         block_time: int | float = 12,
         mechanism_id: int = 0,
     ) -> int:
@@ -430,7 +431,9 @@ class SubnetWeights:
 
         return reveal_round
 
-    async def get(self, uid: int, block_hash: str | None = None, mechanism_id: int = 0) -> dict[Uid, float]:
+    async def get(
+        self, uid: int, block_hash: str | None = None, mechanism_id: int = 0
+    ) -> dict[Uid, float]:
         storage_index = _get_mechid_storage_index(self.subnet.netuid, mechanism_id)
         weights = await self.client.subtensor.subtensor_module.Weights.get(
             storage_index,
@@ -443,7 +446,9 @@ class SubnetWeights:
 
         return {uid: u16_proportion_to_float(weight) for uid, weight in weights}
 
-    async def fetch(self, block_hash: str | None = None, mechanism_id: int = 0) -> dict[Uid, dict[Uid, float]]:
+    async def fetch(
+        self, block_hash: str | None = None, mechanism_id: int = 0
+    ) -> dict[Uid, dict[Uid, float]]:
         storage_index = _get_mechid_storage_index(self.subnet.netuid, mechanism_id)
         weights = await self.client.subtensor.subtensor_module.Weights.fetch(
             storage_index,
@@ -500,24 +505,28 @@ class SubnetWeights:
             for uid, weight in weights.items()
         }
 
+
 class SubnetAssociatedEvmAddresses:
     def __init__(self, subnet: SubnetReference, client: Bittensor):
         self.subnet = subnet
         self.client = client
 
     async def fetch(
-            self,
-            block_hash: str | None = None,
+        self,
+        block_hash: str | None = None,
     ) -> dict[int, AssociatedEvmAddress]:
-        entries = await self.client.subtensor.subtensor_module.AssociatedEvmAddress.fetch(
-            self.subnet.netuid,
-            block_hash=block_hash or get_ctx_block_hash(),
+        entries = (
+            await self.client.subtensor.subtensor_module.AssociatedEvmAddress.fetch(
+                self.subnet.netuid,
+                block_hash=block_hash or get_ctx_block_hash(),
+            )
         )
 
         return {
             uid: AssociatedEvmAddress(evm_address, last_block)
             for (_netuid, uid), (evm_address, last_block) in entries
         }
+
 
 @dataclasses.dataclass
 class SubnetReference:

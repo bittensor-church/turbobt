@@ -5,7 +5,8 @@ import ipaddress
 import typing
 from enum import IntEnum
 
-import bittensor_wallet
+from bittensor.keyfiles import Keypair
+from bittensor.wallet import Wallet
 
 from ...substrate.extrinsic import ExtrinsicResult
 from ...substrate.pallets._types import StorageValue
@@ -99,7 +100,7 @@ class SubtensorModule(Pallet):
         hotkey: str,
         netuid: int,
         amount_staked: int,
-        wallet: bittensor_wallet.Wallet,
+        wallet: Wallet,
         era: Era | None = DEFAULT_ERA,
     ) -> ExtrinsicResult:
         return await self.subtensor.author.submitAndWatchExtrinsic(
@@ -118,7 +119,7 @@ class SubtensorModule(Pallet):
         self,
         netuid: int,
         hotkey: str,
-        wallet: bittensor_wallet.Wallet,
+        wallet: Wallet,
         era: Era | None = DEFAULT_ERA,
     ) -> ExtrinsicResult:
         """
@@ -150,7 +151,7 @@ class SubtensorModule(Pallet):
         netuid: int,
         commit: bytes,
         reveal_round: int,
-        wallet: bittensor_wallet.Wallet,
+        wallet: Wallet,
         era: Era | None = DEFAULT_ERA,
     ) -> ExtrinsicResult:
         return await self.subtensor.author.submitAndWatchExtrinsic(
@@ -173,7 +174,7 @@ class SubtensorModule(Pallet):
         commit: bytes,
         reveal_round: int,
         commit_reveal_version: int,
-        wallet: bittensor_wallet.Wallet,
+        wallet: Wallet,
         era: Era | None = DEFAULT_ERA,
     ) -> ExtrinsicResult:
         """
@@ -191,7 +192,7 @@ class SubtensorModule(Pallet):
         :param commit_reveal_version: Commit-reveal version (e.g., 4 for CRV3). See commit_crv3_weights.
         :type commit_reveal_version: int
         :param wallet: Wallet whose hotkey signs the extrinsic.
-        :type wallet: bittensor_wallet.Wallet
+        :type wallet: Wallet
         :param era: Optional transaction era/mortality.
         :type era: Era | None
         :return: Asynchronous result of the extrinsic submission.
@@ -219,7 +220,7 @@ class SubtensorModule(Pallet):
         mechanism_id: int,
         reveal_round: int,
         commit_reveal_version: int,
-        wallet: bittensor_wallet.Wallet,
+        wallet: Wallet,
         era: Era | None = DEFAULT_ERA,
     ) -> ExtrinsicResult:
         """
@@ -236,7 +237,7 @@ class SubtensorModule(Pallet):
         :param commit_reveal_version: Commit-reveal version (e.g., 4 for CRV3).
         :type commit_reveal_version: int
         :param wallet: Wallet whose hotkey signs the extrinsic.
-        :type wallet: bittensor_wallet.Wallet
+        :type wallet: Wallet
         :param era: Optional transaction era/mortality.
         :type era: Era | None
         :return: Asynchronous result of the extrinsic submission.
@@ -259,9 +260,9 @@ class SubtensorModule(Pallet):
 
     async def register_network(
         self,
-        hotkey: bittensor_wallet.Keypair,
+        hotkey: Keypair,
         mechid: int,
-        wallet: bittensor_wallet.Wallet,
+        wallet: Wallet,
         era: Era | None = DEFAULT_ERA,
     ) -> ExtrinsicResult:
         return await self.subtensor.author.submitAndWatchExtrinsic(
@@ -280,7 +281,7 @@ class SubtensorModule(Pallet):
         hotkey: str,
         netuid: int,
         amount_unstaked: int,
-        wallet: bittensor_wallet.Wallet,
+        wallet: Wallet,
         era: Era | None = DEFAULT_ERA,
     ) -> ExtrinsicResult:
         return await self.subtensor.author.submitAndWatchExtrinsic(
@@ -298,7 +299,7 @@ class SubtensorModule(Pallet):
     async def root_register(
         self,
         hotkey: str,
-        wallet: bittensor_wallet.Wallet,
+        wallet: Wallet,
         era: Era | None = DEFAULT_ERA,
     ) -> ExtrinsicResult:
         """
@@ -307,7 +308,7 @@ class SubtensorModule(Pallet):
         :param hotkey: Hotkey to be registered to the network.
         :type hotkey: str
         :param wallet: The wallet associated with the neuron to be registered.
-        :type wallet: bittensor_wallet.Wallet
+        :type wallet: Wallet
         :return: An asynchronous result of the extrinsic submission.
         :rtype: ExtrinsicResult
         """
@@ -327,7 +328,7 @@ class SubtensorModule(Pallet):
         netuid: int,
         ip: str,
         port: int,
-        wallet: bittensor_wallet.Wallet,
+        wallet: Wallet,
         protocol: int,
         version: int,
         placeholder1: int = 0,
@@ -344,7 +345,7 @@ class SubtensorModule(Pallet):
         :param port: The port number for the Axon endpoint.
         :type port: int
         :param wallet: The wallet associated with the Axon service.
-        :type wallet: bittensor_wallet.Wallet
+        :type wallet: Wallet
         :param version: The Bittensor version identifier.
         :type version: int
         :param placeholder1: Placeholder for further extra params.
@@ -380,7 +381,7 @@ class SubtensorModule(Pallet):
         ip: str,
         port: int,
         certificate: bytes,
-        wallet: bittensor_wallet.Wallet,
+        wallet: Wallet,
         protocol: int,
         version: int,
         placeholder1: int = 0,
@@ -397,7 +398,7 @@ class SubtensorModule(Pallet):
         :param port: The port number for the Axon endpoint.
         :type port: int
         :param wallet: The wallet associated with the Axon service.
-        :type wallet: bittensor_wallet.Wallet
+        :type wallet: Wallet
         :param certificate: The certificate for securing the Axon endpoint.
         :type certificate: bytes
         :param protocol: Axon protocol. TCP, UDP, other.
@@ -438,7 +439,7 @@ class SubtensorModule(Pallet):
         dests: list[int],
         weights: list[int],
         version_key: int,
-        wallet: bittensor_wallet.Wallet,
+        wallet: Wallet,
         era: Era | None = DEFAULT_ERA,
     ) -> ExtrinsicResult:
         """
@@ -456,7 +457,7 @@ class SubtensorModule(Pallet):
         :param version_key: Weights version key indicating encoding/version.
         :type version_key: int
         :param wallet: Wallet whose hotkey signs the extrinsic.
-        :type wallet: bittensor_wallet.Wallet
+        :type wallet: Wallet
         :param era: Optional transaction era/mortality.
         :type era: Era | None
         :return: Asynchronous result of the extrinsic submission.
@@ -484,7 +485,7 @@ class SubtensorModule(Pallet):
         mechanism_id: int,
         weights: list[int],
         version_key: int,
-        wallet: bittensor_wallet.Wallet,
+        wallet: Wallet,
         era: Era | None = DEFAULT_ERA,
     ) -> ExtrinsicResult:
         """
@@ -501,7 +502,7 @@ class SubtensorModule(Pallet):
         :param version_key: Weights version key indicating encoding/version.
         :type version_key: int
         :param wallet: Wallet whose hotkey signs the extrinsic.
-        :type wallet: bittensor_wallet.Wallet
+        :type wallet: Wallet
         :param era: Optional transaction era/mortality.
         :type era: Era | None
         :return: Asynchronous result of the extrinsic submission.

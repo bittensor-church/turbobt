@@ -1,4 +1,4 @@
-import bittensor_wallet
+from bittensor.wallet import Wallet
 
 from ...substrate.extrinsic import ExtrinsicResult
 from ...substrate.pallets.author import DEFAULT_ERA, Era
@@ -11,7 +11,7 @@ class Sudo(Pallet):
         call_module: str,
         call_function: str,
         call_args: dict,
-        wallet: bittensor_wallet.Wallet,
+        wallet: Wallet,
         era: Era | None = DEFAULT_ERA,
     ) -> ExtrinsicResult:
         """

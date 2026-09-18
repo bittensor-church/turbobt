@@ -3,8 +3,8 @@ import dataclasses
 import hashlib
 import typing
 
-import bittensor_wallet
 import scalecodec
+from bittensor.keyfiles import Keypair
 
 from ..extrinsic import Extrinsic, ExtrinsicResult
 from ._base import Pallet
@@ -36,7 +36,7 @@ class Author(Pallet):
         call_module: str,
         call_function: str,
         call_args: dict[str, typing.Any],
-        key: bittensor_wallet.Keypair,
+        key: Keypair,
         era: Era | None = DEFAULT_ERA,
         nonce: int | None = None,
     ) -> ExtrinsicResult:
@@ -149,7 +149,7 @@ class Author(Pallet):
     def _sign(
         self,
         call: scalecodec.types.GenericCall,
-        keypair: bittensor_wallet.Keypair,
+        keypair: Keypair,
         nonce: int | None,
         era: dict,
         block_hash: str,
@@ -216,7 +216,7 @@ class Author(Pallet):
                 ).digest()
             )
 
-        signature = keypair.sign(extrinsic_payload.data)
+        signature = keypair.sign(bytes(extrinsic_payload.data.data))
 
         # https://github.com/polkadot-js/api/blob/cf7e2f01ac61be2c18523ea210c018f96c18ad3d/packages/api/src/submittable/createClass.ts#L247
         extrinsic = self.substrate._registry.create_scale_object(

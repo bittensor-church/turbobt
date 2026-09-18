@@ -5,7 +5,7 @@ import enum
 import ipaddress
 import typing
 
-import bittensor_wallet
+from bittensor.wallet import Wallet
 
 from turbobt.block import get_ctx_block_hash
 
@@ -132,7 +132,7 @@ class NeuronReference:
     async def add_stake(
         self,
         amount: int,
-        wallet: bittensor_wallet.Wallet | None = None,
+        wallet: Wallet | None = None,
     ) -> None:
         extrinsic = await self.subnet.client.subtensor.subtensor_module.add_stake(
             netuid=self.subnet.netuid,
@@ -191,9 +191,7 @@ class NeuronReference:
 
         return certificate
 
-    async def remove_stake(
-        self, amount: int, wallet: bittensor_wallet.Wallet | None = None
-    ) -> None:
+    async def remove_stake(self, amount: int, wallet: Wallet | None = None) -> None:
         extrinsic = await self.subnet.client.subtensor.subtensor_module.remove_stake(
             netuid=self.subnet.netuid,
             hotkey=self.hotkey,

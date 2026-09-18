@@ -1,6 +1,6 @@
 import asyncio
 
-import bittensor_wallet
+from bittensor.wallet import Wallet
 
 from .batch import Batch, Transaction
 from .block import BlockReference, Blocks
@@ -16,7 +16,7 @@ class Bittensor:
     def __init__(
         self,
         *args,
-        wallet: bittensor_wallet.Wallet | None = None,
+        wallet: Wallet | None = None,
         **kwargs,
     ):
         self.subtensor = CacheSubtensor(
