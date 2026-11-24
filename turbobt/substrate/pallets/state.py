@@ -160,6 +160,7 @@ class State(Pallet):
         key: str,
         *params,
         block_hash=None,
+        decode_value: typing.Callable[[scalecodec.ScaleType], typing.Any] | None = None,
     ):
         """
         Returns a child storage entry at a specific block state.
@@ -170,6 +171,8 @@ class State(Pallet):
         :type params:
         :param block_hash: The hash of a specific block in the chain.
         :type block_hash:
+        :param decode_value: Builds the result from the decoded scale object instead of its value.
+        :type decode_value: Callable | None
         :return: An asynchronous result of the extrinsic submission.
         :rtype: Any | None
         """
@@ -201,9 +204,14 @@ class State(Pallet):
             storage_function.get_value_type_string(),  # metadata=metadata
         )
 
-        return res.decode(
+        value = res.decode(
             scalecodec.ScaleBytes(result),
         )
+
+        if decode_value is not None:
+            return decode_value(res)
+
+        return value
 
     async def queryStorageAt(
         self,

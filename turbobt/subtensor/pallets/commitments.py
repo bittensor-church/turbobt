@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import typing
 
+import scalecodec
 from bittensor.wallet import Wallet
 
 from ...substrate.extrinsic import ExtrinsicResult
@@ -39,6 +40,7 @@ class Commitments(Pallet):
             subtensor,
             "Commitments",
             "CommitmentOf",
+            decode_value=_decode_registration,
         )
 
         self.RevealedCommitments = StorageDoubleMap[
@@ -79,3 +81,28 @@ class Commitments(Pallet):
             era=era,
             key=wallet.hotkey,
         )
+
+
+def _decode_registration(registration: scalecodec.ScaleType) -> Registration:
+    """
+    Returns a decoded registration whose BigRaw fields hold their exact bytes as hex.
+
+    scalecodec decodes BigRaw's byte vector to text when it is valid UTF-8, which loses
+    the distinction between text such as "0xab" and the byte 0xab.
+    """
+    value: Registration = registration.value
+    field_objects = (
+        registration.value_object["info"].value_object["fields"].value_object
+    )
+
+    for field_object, field in zip(field_objects, value["info"]["fields"]):
+        if not isinstance(field, dict) or "BigRaw" not in field:
+            continue
+
+        data = field_object.value_object[1].value_object
+        if not isinstance(data, bytes | bytearray):
+            raise TypeError(f"Unexpected BigRaw payload type {type(data).__name__}")
+
+        field["BigRaw"] = f"0x{data.hex()}"
+
+    return value

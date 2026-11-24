@@ -1,4 +1,8 @@
 import pytest
+from scalecodec.base import RuntimeConfigurationObject
+from scalecodec.type_registry import load_type_registry_preset
+
+from turbobt.subtensor.pallets.commitments import _decode_registration
 
 
 @pytest.mark.asyncio
@@ -244,3 +248,65 @@ async def test_set_revealed_commitment(subtensor, alice_wallet):
         era=None,
         key=alice_wallet.hotkey,
     )
+
+
+@pytest.fixture
+def registration_type():
+    # The bundled test metadata predates BigRaw, so mirror its shape in a local registry.
+    runtime_config = RuntimeConfigurationObject()
+    runtime_config.update_type_registry(load_type_registry_preset("core"))
+    runtime_config.update_type_registry(
+        {
+            "types": {
+                "TestData": {
+                    "type": "enum",
+                    "type_mapping": [
+                        ["None", "Null"],
+                        ["Raw2", "[u8; 2]"],
+                        ["BigRaw", "BoundedVec<u8, ConstU32<512>>"],
+                    ],
+                },
+                "TestInfo": {
+                    "type": "struct",
+                    "type_mapping": [["fields", "Vec<TestData>"]],
+                },
+                "TestRegistration": {
+                    "type": "struct",
+                    "type_mapping": [
+                        ["deposit", "u64"],
+                        ["block", "u32"],
+                        ["info", "TestInfo"],
+                    ],
+                },
+            },
+        }
+    )
+    return lambda: runtime_config.create_scale_object("TestRegistration")
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        b"<F:" + b"x" * 296 + b">",
+        b"0x" + b"ab" * 100,
+        bytes(range(256)) + b"\xff" * 44,
+    ],
+)
+def test_decode_registration_big_raw_exact_bytes(registration_type, data):
+    encoded = registration_type().encode(
+        {
+            "deposit": 0,
+            "block": 5,
+            "info": {"fields": [{"BigRaw": data}, {"Raw2": "0x0102"}, "None"]},
+        }
+    )
+    registration = registration_type()
+    registration.decode(encoded)
+
+    assert _decode_registration(registration) == {
+        "deposit": 0,
+        "block": 5,
+        "info": {
+            "fields": [{"BigRaw": f"0x{data.hex()}"}, {"Raw2": "0x0102"}, "None"],
+        },
+    }
