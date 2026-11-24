@@ -1,5 +1,9 @@
 import pytest
+import pytest_asyncio
+from bittensor.keyfiles import Keypair
 
+import turbobt
+from turbobt.substrate._hashers import two_x64_concat
 from turbobt.subtensor.pallets.commitments import Registration
 
 
@@ -283,3 +287,126 @@ async def test_get_big_raw_commitment(mocked_subtensor, bittensor, alice_wallet)
 
     assert commitment["kind"] == "hex_data"
     assert commitment["data"] == data
+
+
+# The tests below run against the bundled chain metadata instead of a mocked subtensor,
+# so they cover the SCALE encoding and decoding of the chain's Data type.
+
+BIG_RAW_PAYLOADS = [
+    pytest.param(b'{"endpoint": "https://example.com"}'.ljust(300), id="text"),
+    pytest.param(b"0x" + b"ab" * 100, id="hex-text"),
+    pytest.param(bytes(range(256)) + b"\xff" * 44, id="binary"),
+]
+
+
+def _big_raw(data: bytes) -> bytes:
+    """SCALE encoding of Data::BigRaw: index 136, compact length, payload."""
+    assert 64 <= len(data) < 2**14
+    return b"\x88" + ((len(data) << 2) | 1).to_bytes(2, "little") + data
+
+
+def _registration(field: bytes) -> str:
+    """SCALE encoding of a single-field Registration made at block 289."""
+    return "0x" + (bytes(8) + (289).to_bytes(4, "little") + b"\x04" + field).hex()
+
+
+def _commitment_key(netuid: int, keypair: Keypair) -> str:
+    prefix = "0xca407206ec1ab726b2636c4b145ac287419a60ae8b01e6dcaebd7317e43c69bf"
+    return (
+        prefix
+        + netuid.to_bytes(2, "little").hex()
+        + two_x64_concat(keypair.public_key).hex()
+    )
+
+
+@pytest_asyncio.fixture
+async def chain_bittensor(mocked_transport, alice_wallet):
+    async with turbobt.Bittensor(
+        "ws://127.0.0.1:9944",
+        transport=mocked_transport,
+        verify=None,
+        wallet=alice_wallet,
+    ) as client:
+        yield client
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("data", BIG_RAW_PAYLOADS)
+async def test_get_big_raw_commitment_from_chain(
+    chain_bittensor, mocked_transport, alice_wallet, data
+):
+    mocked_transport.responses["state_getStorage"] = {
+        "result": _registration(_big_raw(data)),
+    }
+
+    commitment = await chain_bittensor.subnets[1].commitments.get(
+        alice_wallet.hotkey.ss58_address
+    )
+
+    assert commitment == {"kind": "hex_data", "data": data, "block": 289}
+
+
+@pytest.mark.asyncio
+async def test_fetch_big_raw_commitments_from_chain(chain_bittensor, mocked_transport):
+    alice = Keypair.create_from_uri("//Alice")
+    bob = Keypair.create_from_uri("//Bob")
+    text = b"miner endpoint ".ljust(200)
+    hex_text = b"0x" + b"ab" * 100
+    changes = [
+        [_commitment_key(2, alice), _registration(_big_raw(text))],
+        [_commitment_key(2, bob), _registration(_big_raw(hex_text))],
+    ]
+    mocked_transport.responses["state_getKeys"] = {
+        "result": [key for key, _ in changes],
+    }
+    mocked_transport.responses["state_queryStorageAt"] = {
+        "result": [{"block": "0x" + "00" * 32, "changes": changes}],
+    }
+
+    commitments = await chain_bittensor.subnets[2].commitments.fetch()
+
+    assert commitments == {
+        alice.ss58_address: {"kind": "hex_data", "data": text, "block": 289},
+        bob.ss58_address: {"kind": "hex_data", "data": hex_text, "block": 289},
+    }
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("size", "encoded_prefix"),
+    [
+        pytest.param(128, bytes([129]), id="Raw128"),
+        pytest.param(129, b"\x88" + bytes([0x05, 0x02]), id="BigRaw-129"),
+        pytest.param(512, b"\x88" + bytes([0x01, 0x08]), id="BigRaw-512"),
+    ],
+)
+async def test_set_commitment_encoding(
+    chain_bittensor, mocked_transport, mocker, size, encoded_prefix
+):
+    mocker.patch("turbobt.substrate.extrinsic.ExtrinsicResult.wait_for_finalization")
+    mocked_transport.responses["system_accountNextIndex"] = {"result": 1}
+    mocked_transport.responses["chain_getHeader"] = {
+        "result": {
+            "parentHash": "0x" + "00" * 32,
+            "number": "0xf54",
+            "stateRoot": "0x" + "00" * 32,
+            "extrinsicsRoot": "0x" + "00" * 32,
+            "digest": {"logs": []},
+        },
+    }
+    mocked_transport.responses["chain_getBlockHash"] = {"result": "0x" + "00" * 32}
+    mocked_transport.responses["author_submitAndWatchExtrinsic"] = {
+        "result": "0x53364b7062576d6853326a5341736338",
+    }
+    data = bytes(range(256)) * 2
+    data = data[:size]
+
+    await chain_bittensor.subnets[1].commitments.set(data)
+
+    (extrinsic,) = (
+        bytes.fromhex(call.args[0].params["bytes"][2:])
+        for call in mocked_transport.send.call_args_list
+        if call.args[0].method == "author_submitAndWatchExtrinsic"
+    )
+    # set_commitment(netuid=1, info) with a single field ends the extrinsic.
+    assert extrinsic.endswith(b"\x01\x00\x04" + encoded_prefix + data)
