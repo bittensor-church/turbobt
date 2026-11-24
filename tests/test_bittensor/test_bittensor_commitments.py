@@ -239,3 +239,47 @@ async def test_set_revealed_commitment(
     mocked_subtensor.commitments.set_commitment.assert_called_once_with(
         netuid, expected_info, wallet=alice_wallet
     )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("size", "variant"),
+    [(1, "Raw1"), (128, "Raw128"), (129, "BigRaw"), (512, "BigRaw")],
+)
+async def test_set_commitment_variant(
+    mocked_subtensor, bittensor, alice_wallet, size, variant
+):
+    data = b"x" * size
+
+    await bittensor.subnets[1].commitments.set(data, wallet=alice_wallet)
+
+    mocked_subtensor.commitments.set_commitment.assert_called_once_with(
+        1, {"fields": [[{variant: data}]]}, wallet=alice_wallet
+    )
+
+
+@pytest.mark.asyncio
+async def test_set_commitment_rejects_over_512_bytes(
+    mocked_subtensor, bittensor, alice_wallet
+):
+    with pytest.raises(ValueError, match="512"):
+        await bittensor.subnets[1].commitments.set(b"x" * 513, wallet=alice_wallet)
+
+    mocked_subtensor.commitments.set_commitment.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_get_big_raw_commitment(mocked_subtensor, bittensor, alice_wallet):
+    data = b"y" * 300
+    mocked_subtensor.commitments.CommitmentOf.get.return_value = {
+        "block": 100,
+        "deposit": 0,
+        "info": {"fields": [{"BigRaw": "0x" + data.hex()}]},
+    }
+
+    commitment = await bittensor.subnets[1].commitments.get(
+        alice_wallet.hotkey.ss58_address
+    )
+
+    assert commitment["kind"] == "hex_data"
+    assert commitment["data"] == data
