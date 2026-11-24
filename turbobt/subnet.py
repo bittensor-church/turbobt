@@ -47,6 +47,9 @@ BITTENSOR_VERSION_INT = sum(
     e * (1000**i) for i, e in enumerate(reversed(BITTENSOR_VERSION))
 )
 
+COMMITMENT_RAW_MAX_BYTES = 128
+COMMITMENT_BIG_RAW_MAX_BYTES = 512
+
 
 class Commitment(TypedDict, total=False):
     kind: Required[Literal["hex_data", "timelock_encrypted"]]
@@ -130,9 +133,7 @@ class SubnetCommitments:
         info: SetCommitmentInfo = {
             "fields": [
                 [
-                    {
-                        f"Raw{len(data)}": data,
-                    },
+                    _commitment_field(data),
                 ],
             ],
         }
@@ -687,6 +688,20 @@ class Subnets:
             await extrinsic.wait_for_finalization()
 
         # return SubnetReference(None, self._subtensor) # TODO id
+
+
+def _commitment_field(data: bytes) -> dict[str, bytes]:
+    """
+    Chooses the smallest chain Data variant for raw commitment bytes.
+    """
+    if len(data) <= COMMITMENT_RAW_MAX_BYTES:
+        return {f"Raw{len(data)}": data}
+    if len(data) <= COMMITMENT_BIG_RAW_MAX_BYTES:
+        return {"BigRaw": data}
+    raise ValueError(
+        f"Commitment of {len(data)} bytes exceeds the chain's "
+        f"{COMMITMENT_BIG_RAW_MAX_BYTES}-byte limit"
+    )
 
 
 def _map_to_commitment(registration: Registration) -> Commitment:

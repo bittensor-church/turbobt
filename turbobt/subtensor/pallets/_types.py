@@ -18,10 +18,17 @@ V = typing.TypeVar("V")
 
 
 class StorageDoubleMap(typing.Generic[K1, K2, V]):
-    def __init__(self, subtensor: Subtensor, module: str, storage: str):
+    def __init__(
+        self,
+        subtensor: Subtensor,
+        module: str,
+        storage: str,
+        decode_value: typing.Callable[[scalecodec.ScaleType], V] | None = None,
+    ):
         self.subtensor = subtensor
         self.module = module
         self.storage = storage
+        self.decode_value = decode_value
 
     async def get(self, key1: K1, key2: K2, block_hash=None) -> V:
         return await self.subtensor.state.getStorage(
@@ -29,6 +36,7 @@ class StorageDoubleMap(typing.Generic[K1, K2, V]):
             key1,
             key2,
             block_hash=block_hash,
+            decode_value=self.decode_value,
         )
 
     async def fetch(
@@ -105,9 +113,7 @@ class StorageDoubleMap(typing.Generic[K1, K2, V]):
                 key_type.decode(
                     scalecodec.ScaleBytes(key),
                 ),
-                value_type.decode(
-                    scalecodec.ScaleBytes(value),
-                ),
+                self._decode_value(value_type, value),
             )
             for key, value in results
         )
@@ -150,3 +156,11 @@ class StorageDoubleMap(typing.Generic[K1, K2, V]):
             )
 
         return list(results)
+
+    def _decode_value(self, value_type: scalecodec.ScaleType, value: bytearray) -> V:
+        decoded = value_type.decode(scalecodec.ScaleBytes(value))
+
+        if self.decode_value is not None:
+            return self.decode_value(value_type)
+
+        return decoded
